@@ -265,6 +265,187 @@ class DeltaRestClient:
     )
     return response.json()
 
+  def get_indices(self, auth=False):
+    response = self.request('GET', '/v2/indices', auth=auth)
+    return parseResponse(response)
+
+  def get_products(self, query=None, auth=False):
+    response = self.request('GET', '/v2/products', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_tickers(self, query=None, auth=False):
+    response = self.request('GET', '/v2/tickers', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_candles(self, symbol, resolution, start, end, auth=False):
+    query = {
+      'resolution': resolution,
+      'symbol': symbol,
+      'start': start,
+      'end': end
+    }
+    response = self.request('GET', '/v2/history/candles', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_sparklines(self, symbols, auth=False):
+    query = {'symbols': symbols}
+    response = self.request('GET', '/v2/history/sparklines', query=query, auth=auth)
+    return parseResponse(response)
+
+  def option_chain(self, underlying_asset_symbol, expiry_date, auth=False):
+    query = {
+      'contract_types': 'call_options,put_options',
+      'underlying_asset_symbols': underlying_asset_symbol,
+      'expiry_date': expiry_date
+    }
+    response = self.request('GET', '/v2/tickers', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_public_trades(self, symbol, auth=False):
+    response = self.request('GET', '/v2/trades/%s' % symbol, auth=auth)
+    return parseResponse(response)
+
+  def get_wallet_transactions(self, query=None):
+    response = self.request('GET', '/v2/wallet/transactions', query=query, auth=True)
+    return parseResponse(response)
+
+  def download_wallet_transactions(self, query=None):
+    response = self.request('GET', '/v2/wallet/transactions/download', query=query, auth=True)
+    return response
+
+  def change_margin_mode(self, margin_mode, subaccount_user_id=None):
+    payload = {'margin_mode': margin_mode}
+    if subaccount_user_id:
+      payload['subaccount_user_id'] = subaccount_user_id
+    response = self.request('PUT', '/v2/users/margin_mode', payload, auth=True)
+    return parseResponse(response)
+
+  def edit_order(self, order):
+    response = self.request('PUT', '/v2/orders', order, auth=True)
+    return parseResponse(response)
+
+  def cancel_all_orders(self, payload=None):
+    response = self.request('DELETE', '/v2/orders/all', payload, auth=True)
+    return parseResponse(response)
+
+  def get_order_by_id(self, order_id):
+    response = self.request('GET', '/v2/orders/%s' % order_id, auth=True)
+    return parseResponse(response)
+
+  def get_order_by_client_id(self, client_oid):
+    response = self.request('GET', '/v2/orders/client_order_id/%s' % client_oid, auth=True)
+    return parseResponse(response)
+
+  def get_order_leverage(self, product_id):
+    response = self.request('GET', '/v2/products/%s/orders/leverage' % product_id, auth=True)
+    return parseResponse(response)
+
+  def place_bracket_order(self, bracket_order):
+    response = self.request('POST', '/v2/orders/bracket', bracket_order, auth=True)
+    return parseResponse(response)
+
+  def edit_bracket_order(self, bracket_order):
+    response = self.request('PUT', '/v2/orders/bracket', bracket_order, auth=True)
+    return parseResponse(response)
+
+  def auto_topup_position(self, product_id, auto_topup):
+    payload = {
+      'product_id': product_id,
+      'auto_topup': auto_topup
+    }
+    response = self.request('PUT', '/v2/positions/auto_topup', payload, auth=True)
+    return parseResponse(response)
+
+  def close_all_positions(self, close_all_portfolio=False, close_all_isolated=False,
+                           close_all_cross=False, product_ids=None, portfolio_index_symbols=None):
+    payload = {
+      'close_all_portfolio': close_all_portfolio,
+      'close_all_isolated': close_all_isolated,
+      'close_all_cross' : close_all_cross
+    }
+    if product_ids is not None:
+      payload['product_ids'] = product_ids
+    if portfolio_index_symbols is not None:
+      payload['portfolio_index_symbols'] = portfolio_index_symbols
+    response = self.request('POST', '/v2/positions/close_all', payload, auth=True)
+    return parseResponse(response)
+
+  def download_fills_history(self, query=None):
+    response = self.request('GET', '/v2/fills/history/download/csv', query=query, auth=True)
+    return response
+
+  def sub_account_balance_transfer(self, transferrer_user_id, transferee_user_id, asset_symbol, amount):
+    payload = {
+      'transferrer_user_id': transferrer_user_id,
+      'transferee_user_id': transferee_user_id,
+      'asset_symbol': asset_symbol,
+      'amount': amount
+    }
+    response = self.request('POST', '/v2/wallets/sub_account_balance_transfer', payload, auth=True)
+    return parseResponse(response)
+
+  def get_sub_account_transfer_history(self, query=None):
+    response = self.request('GET', '/v2/wallets/sub_accounts_transfer_history', query=query, auth=True)
+    return parseResponse(response)
+
+  def get_volume_stats(self, auth=False):
+    response = self.request('GET', '/v2/stats', auth=auth)
+    return parseResponse(response)
+
+  def update_mmp_config(self, mmp_config):
+    response = self.request('PUT', '/v2/users/update_mmp', mmp_config, auth=True)
+    return parseResponse(response)
+
+  def reset_mmp(self, asset, mmp='mmp1'):
+    payload = {
+      'asset': asset,
+      'mmp': mmp
+    }
+    response = self.request('PUT', '/v2/users/reset_mmp', payload, auth=True)
+    return parseResponse(response)
+
+  def get_trading_preferences(self):
+    response = self.request('GET', '/v2/users/trading_preferences', auth=True)
+    return parseResponse(response)
+
+  def update_trading_preferences(self, preferences):
+    response = self.request('PUT', '/v2/users/trading_preferences', preferences, auth=True)
+    return parseResponse(response)
+
+  def get_subaccounts(self):
+    response = self.request('GET', '/v2/sub_accounts', auth=True)
+    return parseResponse(response)
+
+  def get_user_profile(self):
+    response = self.request('GET', '/v2/profile', auth=True)
+    return parseResponse(response)
+
+  def get_rate_limit_quota(self, auth=False):
+    response = self.request('GET', '/v2/rate_limits/quota', auth=auth)
+    return response.json()
+
+  def get_settlement_prices(self, query=None, auth=False):
+    if query is None:
+      query = {'states': 'expired'}
+    response = self.request('GET', '/v2/products/', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_all_wallet_balances(self):
+    response = self.request('GET', '/v2/wallet/balances', auth=True)
+    return parseResponse(response)
+
+  def get_margin_mode(self):
+    response = self.request('GET', '/v2/users/margin_mode', auth=True)
+    return parseResponse(response)
+
+  def get_margined_positions(self, product_ids=None, contract_types=None):
+    query = {}
+    if product_ids is not None:
+      query['product_ids'] = ','.join(map(str, product_ids)) if isinstance(product_ids, list) else product_ids
+    if contract_types is not None:
+      query['contract_types'] = ','.join(contract_types) if isinstance(contract_types, list) else contract_types
+    response = self.request('GET', '/v2/positions/margined', query=query or None, auth=True)
+    return parseResponse(response)
 
 def parseResponse(response):
   response = response.json()
