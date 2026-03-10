@@ -289,7 +289,7 @@ class DeltaRestClient:
 
   def get_sparklines(self, symbols, auth=False):
     query = {'symbols': symbols}
-    response = self.request('GET', '/v2/history/sparklines', query=query, auth=auth)
+    response = self.request('GET', '/v2/sparklines', query=query, auth=auth)
     return parseResponse(response)
 
   def option_chain(self, underlying_asset_symbol, expiry_date, auth=False):
@@ -410,24 +410,6 @@ class DeltaRestClient:
 
   def update_trading_preferences(self, preferences):
     response = self.request('PUT', '/v2/users/trading_preferences', preferences, auth=True)
-    return parseResponse(response)
-
-  def get_subaccounts(self):
-    response = self.request('GET', '/v2/sub_accounts', auth=True)
-    return parseResponse(response)
-
-  def get_user_profile(self):
-    response = self.request('GET', '/v2/profile', auth=True)
-    return parseResponse(response)
-
-  def get_rate_limit_quota(self, auth=False):
-    response = self.request('GET', '/v2/rate_limits/quota', auth=auth)
-    return response.json()
-
-  def get_settlement_prices(self, query=None, auth=False):
-    if query is None:
-      query = {'states': 'expired'}
-    response = self.request('GET', '/v2/products/', query=query, auth=auth)
     return parseResponse(response)
 
   def get_all_wallet_balances(self):
