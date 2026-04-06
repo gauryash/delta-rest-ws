@@ -287,11 +287,6 @@ class DeltaRestClient:
     response = self.request('GET', '/v2/history/candles', query=query, auth=auth)
     return parseResponse(response)
 
-  def get_sparklines(self, symbols, auth=False):
-    query = {'symbols': symbols}
-    response = self.request('GET', '/v2/sparklines', query=query, auth=auth)
-    return parseResponse(response)
-
   def option_chain(self, underlying_asset_symbol, expiry_date, auth=False):
     query = {
       'contract_types': 'call_options,put_options',
@@ -308,10 +303,6 @@ class DeltaRestClient:
   def get_wallet_transactions(self, query=None):
     response = self.request('GET', '/v2/wallet/transactions', query=query, auth=True)
     return parseResponse(response)
-
-  def download_wallet_transactions(self, query=None):
-    response = self.request('GET', '/v2/wallet/transactions/download', query=query, auth=True)
-    return response
 
   def change_margin_mode(self, margin_mode, subaccount_user_id=None):
     payload = {'margin_mode': margin_mode}
@@ -370,63 +361,12 @@ class DeltaRestClient:
     response = self.request('POST', '/v2/positions/close_all', payload, auth=True)
     return parseResponse(response)
 
-  def download_fills_history(self, query=None):
-    response = self.request('GET', '/v2/fills/history/download/csv', query=query, auth=True)
-    return response
-
-  def sub_account_balance_transfer(self, transferrer_user_id, transferee_user_id, asset_symbol, amount):
-    payload = {
-      'transferrer_user_id': transferrer_user_id,
-      'transferee_user_id': transferee_user_id,
-      'asset_symbol': asset_symbol,
-      'amount': amount
-    }
-    response = self.request('POST', '/v2/wallets/sub_account_balance_transfer', payload, auth=True)
-    return parseResponse(response)
-
-  def get_sub_account_transfer_history(self, query=None):
-    response = self.request('GET', '/v2/wallets/sub_accounts_transfer_history', query=query, auth=True)
-    return parseResponse(response)
-
-  def get_volume_stats(self, auth=False):
-    response = self.request('GET', '/v2/stats', auth=auth)
-    return parseResponse(response)
-
-  def update_mmp_config(self, mmp_config):
-    response = self.request('PUT', '/v2/users/update_mmp', mmp_config, auth=True)
-    return parseResponse(response)
-
-  def reset_mmp(self, asset, mmp='mmp1'):
-    payload = {
-      'asset': asset,
-      'mmp': mmp
-    }
-    response = self.request('PUT', '/v2/users/reset_mmp', payload, auth=True)
-    return parseResponse(response)
-
-  def get_trading_preferences(self):
-    response = self.request('GET', '/v2/users/trading_preferences', auth=True)
-    return parseResponse(response)
-
-  def update_trading_preferences(self, preferences):
-    response = self.request('PUT', '/v2/users/trading_preferences', preferences, auth=True)
-    return parseResponse(response)
-
   def get_all_wallet_balances(self):
     response = self.request('GET', '/v2/wallet/balances', auth=True)
     return parseResponse(response)
 
   def get_margin_mode(self):
     response = self.request('GET', '/v2/users/margin_mode', auth=True)
-    return parseResponse(response)
-
-  def get_margined_positions(self, product_ids=None, contract_types=None):
-    query = {}
-    if product_ids is not None:
-      query['product_ids'] = ','.join(map(str, product_ids)) if isinstance(product_ids, list) else product_ids
-    if contract_types is not None:
-      query['contract_types'] = ','.join(contract_types) if isinstance(contract_types, list) else contract_types
-    response = self.request('GET', '/v2/positions/margined', query=query or None, auth=True)
     return parseResponse(response)
 
 def parseResponse(response):
