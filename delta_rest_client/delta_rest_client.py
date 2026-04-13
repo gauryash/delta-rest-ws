@@ -365,10 +365,6 @@ class DeltaRestClient:
     response = self.request('GET', '/v2/wallet/balances', auth=True)
     return parseResponse(response)
 
-  def get_margin_mode(self):
-    response = self.request('GET', '/v2/users/margin_mode', auth=True)
-    return parseResponse(response)
-
 def parseResponse(response):
   response = response.json()
   if response['success']:
