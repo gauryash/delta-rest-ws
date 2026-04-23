@@ -265,6 +265,105 @@ class DeltaRestClient:
     )
     return response.json()
 
+  def get_indices(self, auth=False):
+    response = self.request('GET', '/v2/indices', auth=auth)
+    return parseResponse(response)
+
+  def get_products(self, query=None, auth=False):
+    response = self.request('GET', '/v2/products', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_tickers(self, query=None, auth=False):
+    response = self.request('GET', '/v2/tickers', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_candles(self, symbol, resolution, start, end, auth=False):
+    query = {
+      'resolution': resolution,
+      'symbol': symbol,
+      'start': start,
+      'end': end
+    }
+    response = self.request('GET', '/v2/history/candles', query=query, auth=auth)
+    return parseResponse(response)
+
+  def option_chain(self, underlying_asset_symbol, expiry_date, auth=False):
+    query = {
+      'contract_types': 'call_options,put_options',
+      'underlying_asset_symbols': underlying_asset_symbol,
+      'expiry_date': expiry_date
+    }
+    response = self.request('GET', '/v2/tickers', query=query, auth=auth)
+    return parseResponse(response)
+
+  def get_public_trades(self, symbol, auth=False):
+    response = self.request('GET', '/v2/trades/%s' % symbol, auth=auth)
+    return parseResponse(response)
+
+  def get_wallet_transactions(self, query=None):
+    response = self.request('GET', '/v2/wallet/transactions', query=query, auth=True)
+    return parseResponse(response)
+
+  def change_margin_mode(self, margin_mode, subaccount_user_id=None):
+    payload = {'margin_mode': margin_mode}
+    if subaccount_user_id:
+      payload['subaccount_user_id'] = subaccount_user_id
+    response = self.request('PUT', '/v2/users/margin_mode', payload, auth=True)
+    return parseResponse(response)
+
+  def edit_order(self, order):
+    response = self.request('PUT', '/v2/orders', order, auth=True)
+    return parseResponse(response)
+
+  def cancel_all_orders(self, payload=None):
+    response = self.request('DELETE', '/v2/orders/all', payload, auth=True)
+    return parseResponse(response)
+
+  def get_order_by_id(self, order_id):
+    response = self.request('GET', '/v2/orders/%s' % order_id, auth=True)
+    return parseResponse(response)
+
+  def get_order_by_client_id(self, client_oid):
+    response = self.request('GET', '/v2/orders/client_order_id/%s' % client_oid, auth=True)
+    return parseResponse(response)
+
+  def get_order_leverage(self, product_id):
+    response = self.request('GET', '/v2/products/%s/orders/leverage' % product_id, auth=True)
+    return parseResponse(response)
+
+  def place_bracket_order(self, bracket_order):
+    response = self.request('POST', '/v2/orders/bracket', bracket_order, auth=True)
+    return parseResponse(response)
+
+  def edit_bracket_order(self, bracket_order):
+    response = self.request('PUT', '/v2/orders/bracket', bracket_order, auth=True)
+    return parseResponse(response)
+
+  def auto_topup_position(self, product_id, auto_topup):
+    payload = {
+      'product_id': product_id,
+      'auto_topup': auto_topup
+    }
+    response = self.request('PUT', '/v2/positions/auto_topup', payload, auth=True)
+    return parseResponse(response)
+
+  def close_all_positions(self, close_all_portfolio=False, close_all_isolated=False,
+                           close_all_cross=False, product_ids=None, portfolio_index_symbols=None):
+    payload = {
+      'close_all_portfolio': close_all_portfolio,
+      'close_all_isolated': close_all_isolated,
+      'close_all_cross' : close_all_cross
+    }
+    if product_ids is not None:
+      payload['product_ids'] = product_ids
+    if portfolio_index_symbols is not None:
+      payload['portfolio_index_symbols'] = portfolio_index_symbols
+    response = self.request('POST', '/v2/positions/close_all', payload, auth=True)
+    return parseResponse(response)
+
+  def get_all_wallet_balances(self):
+    response = self.request('GET', '/v2/wallet/balances', auth=True)
+    return parseResponse(response)
 
 def parseResponse(response):
   response = response.json()
