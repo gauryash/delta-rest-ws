@@ -173,27 +173,6 @@ python -m build
 python -m twine check dist/*
 ```
 
-## Publishing to PyPI
-
-Releases are published by `.github/workflows/release.yml` through PyPI Trusted Publishing. No
-long-lived PyPI token is stored in GitHub.
-
-One-time PyPI setup:
-
-1. Sign in to PyPI and add a pending GitHub Trusted Publisher for project `delta-rest-ws`.
-2. Set owner `gauryash`, repository `delta-rest-ws`, workflow `release.yml`, and environment
-   `pypi`.
-3. In the GitHub repository, create the `pypi` environment. Requiring a reviewer is recommended.
-
-To release a new version:
-
-1. Update the version in both `pyproject.toml` and `src/delta_rest_ws/__init__.py`.
-2. Update `CHANGELOG.md`, commit, and push. CI must pass.
-3. Create and publish a GitHub Release whose tag matches the version, for example `v0.1.0`.
-4. The release workflow builds, validates, and publishes the wheel and source distribution.
-
-PyPI does not permit replacing a published version. Increment the version for every release.
-
 ## License
 
 MIT License.
