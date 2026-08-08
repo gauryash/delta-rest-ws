@@ -1,294 +1,191 @@
-# Python Rest Client for Delta Api
+# Delta Exchange Python SDK
 
-Delta Exchange is a crypto derivatives exchange where you can trade bitcoin, ethereum, ripple futures upto 100x leverage. This package is a wrapper around rest apis of Delta Exchange.
-User Guide - https://www.delta.exchange/user-guide
-API Documentation - https://docs.delta.exchange
+A typed Python client for the Delta Exchange v2 REST API and real-time WebSocket feed.
+It is based on the API snapshot in [`docs/delta-exchange-api-docs.md`](docs/delta-exchange-api-docs.md).
 
-Please read the [Changelog](https://github.com/delta-exchange/python-rest-client/blob/master/changelog.md) before using this package.
+> This is a community SDK. Test trading code on the demo environment before using real funds.
 
-# Get started
+## Features
 
-1. Create an account on Testnet-India: https://testnet.delta.exchange/   
-For non-Indian customers use Testnet-Global: https://testnet-global.delta.exchange/
-2. Install the package:
-   ```
-   pip install delta-rest-client
-   ```
-3. Follow the below snippet to trade on testnet:
-  ```
-  from delta_rest_client import DeltaRestClient
+- Public and signed REST requests
+- Helpers for market data, orders, positions, wallets, account settings, MMP, and deadman switch
+- Generic `request()` method for newly released v2 endpoints
+- Cursor pagination iterator
+- Async WebSocket client with `key-auth`, heartbeat monitoring, reconnection, and subscription replay
+- Built-in India/global REST and India WebSocket endpoint selection
+- Structured exceptions and complete type hints
 
-  delta_client = DeltaRestClient(
-    base_url='https://cdn-ind.testnet.deltaex.org',
-    api_key='',
-    api_secret=''
-  )
-  ```
+## Install
 
-  ```
-  base_url for different environments:
-  Production-India : https://api.india.delta.exchange
-  (Site at: https://india.delta.exchange/)
-
-  Testnet-India : https://cdn-ind.testnet.deltaex.org
-  (Site at: https://testnet.delta.exchange/)
-
-  Production-Global : https://api.delta.exchange
-  (Site at: https://www.delta.exchange/)
-
-  Testnet-Global : https://testnet-api.delta.exchange
-  (Site at: https://testnet-global.delta.exchange/)
-  ```
-4. Get json list of available contracts to trade from given url and note down the product_id and asset_id, as it will be used in most of the api calls.
-
-
-## Methods
-
-> **Get Assets**
-
-Get list of assets supported on Delta.
-
-```
-response = delta_client.get_assets()
+```bash
+pip install delta-rest-ws
 ```
 
-> **Get Product Detail**
+Python 3.9 or newer is required.
 
-Get product detail of current product.
-[See sample response](https://docs.delta.exchange/#delta-exchange-api-products)
+## REST quick start
 
-```
-product = delta_client.get_product(product_id) # Current Instrument
-settling_asset = product['settling_asset'] # Currency in which the pnl will be realised
-```
+Public endpoints need no credentials:
 
-| Name       | Type      | Description   | Required |
-| ---------- | --------- | ------------- | -------- |
-| product_id | `integer` | id of product | true     |
+```python
+from delta_rest_ws import DeltaRestClient, Environment
 
-> **Get Ticker Data**
+client = DeltaRestClient(environment=Environment.INDIA_TESTNET)
 
-[See sample response](https://docs.delta.exchange/#get-24hr-ticker)
-
-```
-response = delta_client.get_ticker(symbol)
-```
-
-| Name   | Type     | Description    | Required |
-| ------ | -------- | -------------- | -------- |
-| symbol | `string` | product symbol | true     |
-
-> **Get Orderbook**
-
-Get level-2 orderbook of the product.
-[See sample response](https://docs.delta.exchange/#delta-exchange-api-orderbook)
-
-```
-response = delta_client.get_l2_orderbook(product_id)
+products = client.get_products({"states": "live"})
+ticker = client.get_ticker("BTCUSD")
+candles = client.get_candles(
+    symbol="BTCUSD",
+    resolution="5m",
+    start=1722511635,
+    end=1722598035,
+)
+client.close()
 ```
 
-| Name       | Type      | Description   | Required |
-| ---------- | --------- | ------------- | -------- |
-| product_id | `integer` | id of product | true     |
+Private endpoints are signed automatically:
 
-> **Open Orders**
+```python
+from delta_rest_ws import DeltaRestClient, Environment, OrderType
 
-Get open orders.
-Authorization required. [See sample response](https://docs.delta.exchange/#get-orders)
-
-```
-orders = delta_client.get_live_orders()
-```
-
-> **Place Order**
-
-Create a new market order or limit order.
-Authorization required. [See sample response](https://docs.delta.exchange/#place-order)
-
-```
-order_response = delta_client.place_stop_order(
-        product_id=product_id,
-        size=10,
-        side='sell',
-				limit_price='7800',
+with DeltaRestClient(
+    environment=Environment.INDIA_TESTNET,
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+) as client:
+    order = client.place_order(
+        product_id=27,
+        size=1,
+        side="buy",
         order_type=OrderType.LIMIT,
-     		time_in_force=TimeInForce.FOK
-        reduce_only='false'
+        limit_price="50000",
+        client_order_id="strategy-001",
     )
+    client.cancel_order(product_id=27, order_id=order["id"])
 ```
 
-| Name          | Type     | Description                           | Required                 |
-| ------------- | -------- | ------------------------------------- | ------------------------ |
-| product_id    | `int`    | id of product                         | true                     |
-| size          | `int`    | order size                            | true                     |
-| side          | `string` | buy or sell                           | true                     |
-| limit_price   | `string` | order price (ignored if market order) | false                    |
-| order_type    | `string` | limit or market                       | false (LIMIT by default) |
-| time_in_force | `string` | IOC or GTC or FOK                     | false (GTC by default)   |
-| post_only     | `string` | maker order (true or false)           | false (false by default) |
-| reduce_only   | `string` | reduce only order (true or false)     | false (false by default) |
+Do not commit API credentials. Read them from environment variables or a secrets manager.
 
-> **Place Stop Order**
+### Environments
 
-Add stop loss or trailing stop loss.
-Authorization required. [See sample response](https://docs.delta.exchange/#place-order)
+| Environment | REST | Private WebSocket | Public WebSocket |
+|---|---|---|---|
+| `INDIA` | `https://api.india.delta.exchange` | `wss://socket.india.delta.exchange` | `wss://public-socket.india.delta.exchange` |
+| `INDIA_TESTNET` | `https://cdn-ind.testnet.deltaex.org` | `wss://socket-ind.testnet.deltaex.org` | `wss://socket-ind-pub.testnet.deltaex.org` |
+| `GLOBAL` | `https://api.delta.exchange` | Pass `url=` explicitly | Pass `url=` explicitly |
+| `GLOBAL_TESTNET` | `https://testnet-api.delta.exchange` | Pass `url=` explicitly | Pass `url=` explicitly |
 
+The bundled API documentation only declares India WebSocket URLs, so the SDK does not guess
+global socket endpoints.
+
+### Pagination
+
+```python
+for page in client.iter_pages(
+    "/fills",
+    query={"contract_types": "perpetual_futures"},
+):
+    for fill in page:
+        print(fill)
 ```
-# Trailing Stop loss
-order_response = delta_client.place_stop_order(
-        product_id=product_id,
-        size=10,
-        side='sell',
-				limit_price='7800',
-        order_type=OrderType.LIMIT,
-        trail_amount='20',
-        isTrailingStopLoss=True
+
+`order_history()` and `fills()` return the full API envelope so `result` and `meta.after`
+remain available. Most other helpers return the `result` value directly.
+
+### Calling a new endpoint
+
+```python
+result = client.request(
+    "GET",
+    "/v2/some_future_endpoint",
+    query={"symbol": "BTCUSD"},
+    auth=True,
+)
+```
+
+## WebSocket quick start
+
+Subscriptions may be registered before connecting. They are sent on connect and restored after
+any reconnect.
+
+```python
+import asyncio
+
+from delta_rest_ws import Channel, DeltaWebSocketClient, Environment
+
+
+async def main():
+    ws = DeltaWebSocketClient(
+        environment=Environment.INDIA_TESTNET,
+        public=True,
     )
+    await ws.subscribe(Channel.TICKER, ["BTCUSD", "ETHUSD"])
+    await ws.subscribe("candlestick_1m", ["MARK:BTCUSD"])
 
-# Stop loss
-order_response = delta_client.place_stop_order(
-        product_id=product_id,
-        size=10,
-        side='sell',
-        order_type=OrderType.MARKET,
-        stop_price='8010.5',
-    )
+    try:
+        async for message in ws.messages():
+            print(message)
+    finally:
+        await ws.close()
+
+
+asyncio.run(main())
 ```
 
-| Name               | Type     | Description                            | Required                              |
-| ------------------ | -------- | -------------------------------------- | ------------------------------------- |
-| product_id         | `int`    | id of product                          | true                                  |
-| size               | `int`    | order size                             | true                                  |
-| side               | `string` | buy or sell                            | true                                  |
-| stop_price         | `string` | price at which order will be triggered | false(required if stop_loss)          |
-| trail_amount       | `string` | trail price                            | false(required if trailing_stop_loss) |
-| limit_price        | `string` | order price (ignored if market order)  | false                                 |
-| order_type         | `string` | limit or market                        | false (LIMIT by default)              |
-| time_in_force      | `string` | IOC or GTC or FOK                      | false (GTC by default)                |
-| isTrailingStopLoss | `string` | true or false                          | false (false by default)              |
+Private streams authenticate before subscriptions are sent:
 
-> **Cancel Order**
+```python
+ws = DeltaWebSocketClient(
+    environment=Environment.INDIA_TESTNET,
+    api_key="YOUR_API_KEY",
+    api_secret="YOUR_API_SECRET",
+)
+await ws.subscribe(Channel.ORDERS, ["all"])
+await ws.subscribe(Channel.POSITIONS, ["all"])
 
-Delete open order.
-Authorization required. [See sample response](https://docs.delta.exchange/#cancel-order)
-
-```
-cancel_response = delta_client.cancel_order(product_id, order_id)
+async for message in ws.messages():
+    print(message)
 ```
 
-| Name       | Type  | Description   | Required |
-| ---------- | ----- | ------------- | -------- |
-| product_id | `int` | id of product | true     |
-| order_id   | `int` | order id      | true     |
+The client enables Delta's server heartbeat and uses a 40-second receive timeout by default.
+It also sends WebSocket ping frames every 30 seconds and expects a pong within 5 seconds.
 
-> **Batch Create Orders**
+## Errors
 
-Create multiple limit orders. Max number of order is 5.
-Authorization required. [See sample response](https://docs.delta.exchange/#create-batch-orders)
+```python
+from delta_rest_ws import DeltaAPIError, DeltaHTTPError
 
-```
-response = delta_client.batch_create(product_id, orders)
-```
-
-| Name  | Type    | Description     | Required |
-| ----- | ------- | --------------- | -------- |
-| order | `array` | array of orders | true     |
-
-> **Batch Cancel Orders**
-
-Cancel multiple open orders. Max number of order is 5.
-Authorization required. [See sample response](https://docs.delta.exchange/#delele-batch-orders)
-
-```
-response = delta_client.batch_cancel(product_id, orders)
+try:
+    client.get_profile()
+except DeltaHTTPError as error:
+    print(error.status_code, error)
+except DeltaAPIError as error:
+    print(error.code, error.context, error)
 ```
 
-| Name  | Type    | Description     | Required |
-| ----- | ------- | --------------- | -------- |
-| order | `array` | array of orders | true     |
+## Development
 
-> **Change Order Leverage**
-
-Change leverage for new orders.
-Authorization required. [See sample response](https://docs.delta.exchange/#change-order-leverage)
-
-```
-response = delta_client.set_leverage(product_id, leverage)
+```bash
+python -m pip install -e ".[dev]"
+ruff check .
+pytest
+python -m build
+python -m twine check dist/*
 ```
 
-| Name       | Type      | Description    | Required |
-| ---------- | --------- | -------------- | -------- |
-| product_id | `integer` | id of product  | true     |
-| leverage   | `string`  | leverage value | true     |
+## Publishing to PyPI
 
-> **Open Position**
+1. Choose and register the final distribution name. `delta-rest-client` is already owned by the
+   official Delta maintainers. The current metadata uses `delta-rest-ws`; name availability
+   can change until the first upload claims it.
+2. Update the version in both `pyproject.toml` and `src/delta_rest_ws/__init__.py`.
+3. Run the development checks above.
+4. Prefer a PyPI Trusted Publisher from CI, or upload manually with
+   `python -m twine upload dist/*` using an API token.
 
-Current open position of product.
-Authorization required. [See sample response](https://docs.delta.exchange/#get-open-positions)
+Publishing is intentionally not automated from a developer machine because it requires the
+owner's PyPI account and explicit release authorization.
 
-```
-response = delta_client.get_position(product_id)
-```
+## License
 
-| Name       | Type      | Description   | Required |
-| ---------- | --------- | ------------- | -------- |
-| product_id | `integer` | id of product | true     |
-
-> **Change Leverage Positions**
-
-Change leverage for open position by adding or removing margin to an open position.
-Authorization required. [See sample response](https://docs.delta.exchange/#add-remove-position-margin)
-
-```
-response = delta_client.change_position_margin(product_id, margin)
-```
-
-| Name       | Type      | Description   | Required |
-| ---------- | --------- | ------------- | -------- |
-| product_id | `integer` | id of product | true     |
-| margin     | `string`  | new margin    | true     |
-
-> **Get Wallet Balances**
-
-Get user's balance.
-Authorization required. [See sample response](https://docs.delta.exchange/#get-wallet-balances)
-
-```
-response = delta_client.get_balances(asset_id)
-```
-
-| Name     | Type      | Description | Required |
-| -------- | --------- | ----------- | -------- |
-| asset_id | `integer` | id of asset | true     |
-
-
-> **Order History**
-
-```
-query = { "product_id": 27 }
-response = delta_client.order_history(query, page_size=100)
-old_orders = response['result']
-after_cursor_for_next_page = response["meta"]["after"]
-more_orders = delta_client.order_history(query, page_size=100, after=after_cursor_for_next_page)
-```
-
-| Name      | Type      | Description | Required |
-| --------- | --------- | ----------- | -------- |
-| page_size | `integer` | page size   | false    |
-
-> **Fills**
-
-Get fill history of your orders
-
-```
-query = { "contract_types": "futures,interest_rate_swaps" }
-response = delta_client.fills(query, page_size=100)
-
-fills = response['result']
-after_cursor_for_next_page = response["meta"]["after"]
-more_fills = delta_client.fills(query, page_size=100, after=after_cursor_for_next_page)
-```
-
-| Name      | Type      | Description | Required |
-| --------- | --------- | ----------- | -------- |
-| page_size | `integer` | page size   | false    |
+MIT License.
